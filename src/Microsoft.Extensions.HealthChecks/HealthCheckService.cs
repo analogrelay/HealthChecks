@@ -9,14 +9,33 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Extensions.HealthChecks
 {
+    /// <summary>
+    /// Default implementation of <see cref="IHealthCheckService"/>
+    /// </summary>
     public class HealthCheckService : IHealthCheckService
     {
         private readonly ILogger<HealthCheckService> _logger;
 
+        /// <summary>
+        /// A <see cref="IReadOnlyDictionary{TKey, T}"/> containing all the health checks registered in the application.
+        /// </summary>
+        /// <remarks>
+        /// The key maps to the <see cref="IHealthCheck.Name"/> property of the health check, and the value is the <see cref="IHealthCheck"/>
+        /// instance itself.
+        /// </remarks>
         public IReadOnlyDictionary<string, IHealthCheck> Checks { get; }
 
+        /// <summary>
+        /// Constructs a <see cref="HealthCheckService"/> from the provided collection of <see cref="IHealthCheck"/> instances.
+        /// </summary>
+        /// <param name="healthChecks">The <see cref="IHealthCheck"/> instances that have been registered in the application.</param>
         public HealthCheckService(IEnumerable<IHealthCheck> healthChecks) : this(healthChecks, NullLogger<HealthCheckService>.Instance) { }
 
+        /// <summary>
+        /// Constructs a <see cref="HealthCheckService"/> from the provided collection of <see cref="IHealthCheck"/> instances, and the provided logger.
+        /// </summary>
+        /// <param name="healthChecks">The <see cref="IHealthCheck"/> instances that have been registered in the application.</param>
+        /// <param name="logger">A <see cref="ILogger{T}"/> that can be used to log events that occur during health check operations.</param>
         public HealthCheckService(IEnumerable<IHealthCheck> healthChecks, ILogger<HealthCheckService> logger)
         {
             Checks = healthChecks.ToDictionary(c => c.Name);
@@ -31,6 +50,14 @@ namespace Microsoft.Extensions.HealthChecks
             }
         }
 
+        /// <summary>
+        /// Runs all the health checks in the application and returns the aggregated status.
+        /// </summary>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> which can be used to cancel the health checks</param>
+        /// <returns>
+        /// A <see cref="Task{CompositeHealthCheckResult}"/> which will complete when all the health checks have been run,
+        /// yielding a <see cref="CompositeHealthCheckResult"/> containing the results.
+        /// </returns>
         public async Task<CompositeHealthCheckResult> CheckHealthAsync(CancellationToken cancellationToken = default)
         {
             var results = new Dictionary<string, HealthCheckResult>(Checks.Count);

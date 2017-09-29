@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -15,8 +12,8 @@ namespace Microsoft.Extensions.HealthChecks.Test
             var services = new ServiceCollection();
 
             // Act
-            services.AddHealthChecks();
-            services.AddHealthChecks();
+            services.AddHealthChecks(_ => { });
+            services.AddHealthChecks(_ => { });
 
             // Assert
             Assert.Collection(services,
