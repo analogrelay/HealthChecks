@@ -1,10 +1,165 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
+using Microsoft.Extensions.HealthChecks.Internal;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
+using Xunit;
 
 namespace Microsoft.Extensions.HealthChecks.Test
 {
-    class HealthCheckServiceTest
+    public class HealthCheckServiceTest
     {
+        [Fact]
+        public void Constructor_BuildsDictionaryOfChecks()
+        {
+            // Arrange
+            var fooCheck = new HealthCheck("Foo", _ => Task.FromResult(HealthCheckResult.Healthy()));
+            var barCheck = new HealthCheck("Bar", _ => Task.FromResult(HealthCheckResult.Healthy()));
+            var bazCheck = new HealthCheck("Baz", _ => Task.FromResult(HealthCheckResult.Healthy()));
+            var checks = new[] { fooCheck, barCheck, bazCheck };
+
+            // Act
+            var service = new HealthCheckService(checks);
+
+            // Assert
+            Assert.Same(fooCheck, service.Checks["Foo"]);
+            Assert.Same(barCheck, service.Checks["Bar"]);
+            Assert.Same(bazCheck, service.Checks["Baz"]);
+            Assert.Equal(3, service.Checks.Count);
+        }
+
+        [Fact]
+        public async Task CheckAsync_RunsAllChecksAndAggregatesResultsAsync()
+        {
+            const string DataKey = "Foo";
+            const string DataValue = "Bar";
+            const string DegradedMessage = "I'm not feeling so good";
+            const string UnhealthyMessage = "Halp!";
+            const string HealthyMessage = "Everything is A-OK";
+            var exception = new Exception("Things are pretty bad!");
+
+            // Arrange
+            var data = new Dictionary<string, object>()
+            {
+                { DataKey, DataValue }
+            };
+
+            var healthyCheck = new HealthCheck("HealthyCheck", _ => Task.FromResult(HealthCheckResult.Healthy(HealthyMessage, data)));
+            var degradedCheck = new HealthCheck("DegradedCheck", _ => Task.FromResult(HealthCheckResult.Degraded(DegradedMessage)));
+            var unhealthyCheck = new HealthCheck("UnhealthyCheck", _ => Task.FromResult(HealthCheckResult.Unhealthy(UnhealthyMessage, exception)));
+
+            var service = new HealthCheckService(new[]
+            {
+                healthyCheck,
+                degradedCheck,
+                unhealthyCheck,
+            });
+
+            // Act
+            var results = await service.CheckHealthAsync();
+
+            // Assert
+            Assert.Collection(results.Results,
+                actual =>
+                {
+                    Assert.Equal(healthyCheck.Name, actual.Key);
+                    Assert.Equal(HealthCheckStatus.Healthy, actual.Value.Status);
+                    Assert.Equal(HealthyMessage, actual.Value.Description);
+                    Assert.Null(actual.Value.Exception);
+                    Assert.Collection(actual.Value.Data, item =>
+                    {
+                        Assert.Equal(DataKey, item.Key);
+                        Assert.Equal(DataValue, item.Value);
+                    });
+                },
+                actual =>
+                {
+                    Assert.Equal(degradedCheck.Name, actual.Key);
+                    Assert.Equal(HealthCheckStatus.Degraded, actual.Value.Status);
+                    Assert.Equal(DegradedMessage, actual.Value.Description);
+                    Assert.Null(actual.Value.Exception);
+                    Assert.Empty(actual.Value.Data);
+                },
+                actual =>
+                {
+                    Assert.Equal(unhealthyCheck.Name, actual.Key);
+                    Assert.Equal(HealthCheckStatus.Unhealthy, actual.Value.Status);
+                    Assert.Equal(UnhealthyMessage, actual.Value.Description);
+                    Assert.Same(exception, actual.Value.Exception);
+                    Assert.Empty(actual.Value.Data);
+                });
+        }
+
+        [Fact]
+        public async Task CheckHealthAsync_ConvertsExceptionInHealthCheckerToFailedResultAsync()
+        {
+            // Arrange
+            var thrownException = new InvalidOperationException("Whoops!");
+            var faultedException = new InvalidOperationException("Ohnoes!");
+            var service = new HealthCheckService(new[]
+            {
+                new HealthCheck("Throws", ct => throw thrownException),
+                new HealthCheck("Faults", ct => Task.FromException<HealthCheckResult>(faultedException)),
+                new HealthCheck("Succeeds", ct => Task.FromResult(HealthCheckResult.Healthy())),
+            });
+
+            // Act
+            var results = await service.CheckHealthAsync();
+
+            // Assert
+            Assert.Collection(results.Results,
+                actual =>
+                {
+                    Assert.Equal("Throws", actual.Key);
+                    Assert.Equal(HealthCheckStatus.Failed, actual.Value.Status);
+                    Assert.Equal(thrownException.Message, actual.Value.Description);
+                    Assert.Same(thrownException, actual.Value.Exception);
+                },
+                actual =>
+                {
+                    Assert.Equal("Faults", actual.Key);
+                    Assert.Equal(HealthCheckStatus.Failed, actual.Value.Status);
+                    Assert.Equal(faultedException.Message, actual.Value.Description);
+                    Assert.Same(faultedException, actual.Value.Exception);
+                },
+                actual =>
+                {
+                    Assert.Equal("Succeeds", actual.Key);
+                    Assert.Equal(HealthCheckStatus.Healthy, actual.Value.Status);
+                    Assert.Empty(actual.Value.Description);
+                    Assert.Null(actual.Value.Exception);
+                });
+        }
+
+        [Fact]
+        public async Task CheckHealthAsync_SetsUpALoggerScopeForEachCheck()
+        {
+            // Arrange
+            var sink = new TestSink();
+            var check = new HealthCheck("TestScope", cancellationToken =>
+            {
+                Assert.Collection(sink.Scopes,
+                    actual =>
+                    {
+                        Assert.Equal(actual.LoggerName, typeof(HealthCheckService).FullName);
+                        var scope = Assert.IsType<HealthCheckLogScope>(actual.Scope);
+                        Assert.Equal("TestScope", scope.HealthCheckName);
+                    });
+                return Task.FromResult(HealthCheckResult.Healthy());
+            });
+            var loggerFactory = new TestLoggerFactory(sink, enabled: true);
+            var service = new HealthCheckService(new[] { check }, loggerFactory.CreateLogger<HealthCheckService>());
+
+            // Act
+            var results = await service.CheckHealthAsync();
+
+            // Assert
+            Assert.Collection(results.Results, actual =>
+            {
+                Assert.Equal("TestScope", actual.Key);
+                Assert.Equal(HealthCheckStatus.Healthy, actual.Value.Status);
+            });
+        }
     }
 }

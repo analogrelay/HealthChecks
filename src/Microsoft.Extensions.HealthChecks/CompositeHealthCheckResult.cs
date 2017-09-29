@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Extensions.HealthChecks
 {
-    public class CompositeHealthCheckResult
+    public struct CompositeHealthCheckResult
     {
         public IReadOnlyDictionary<string, HealthCheckResult> Results { get; }
 
