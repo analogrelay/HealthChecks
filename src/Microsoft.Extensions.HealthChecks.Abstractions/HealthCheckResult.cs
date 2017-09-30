@@ -13,8 +13,6 @@ namespace Microsoft.Extensions.HealthChecks
         private string _description;
         private IReadOnlyDictionary<string, object> _data;
 
-        // REVIEW: Put the name of the health check or IHealthCheck instance on here?
-
         /// <summary>
         /// Gets a <see cref="HealthCheckStatus"/> value indicating the status of the component that was checked.
         /// </summary>
@@ -48,6 +46,11 @@ namespace Microsoft.Extensions.HealthChecks
         /// <param name="data">Additional key-value pairs describing the health of the component</param>
         public HealthCheckResult(HealthCheckStatus status, Exception exception, string description, IReadOnlyDictionary<string, object> data)
         {
+            if(status == HealthCheckStatus.Unknown)
+            {
+                throw new ArgumentException($"'{nameof(HealthCheckStatus.Unknown)}' is not a valid value for the 'status' parameter.", nameof(status));
+            }
+
             Status = status;
             Exception = exception;
             _description = description;

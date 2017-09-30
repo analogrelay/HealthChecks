@@ -3,6 +3,10 @@ namespace Microsoft.Extensions.HealthChecks
     /// <summary>
     /// Represents the status of a health check result.
     /// </summary>
+    /// <remarks>
+    /// The values of this enum or ordered from least healthy to most healthy. So <see cref="HealthCheckStatus.Degraded"/> is
+    /// greater than <see cref="HealthCheckStatus.Unhealthy"/> but less than <see cref="HealthCheckStatus.Healthy"/>.
+    /// </remarks>
     public enum HealthCheckStatus
     {
         /// <summary>
@@ -25,7 +29,7 @@ namespace Microsoft.Extensions.HealthChecks
         /// Indicates that the health check determined that the component was in a degraded state
         /// </summary>
         Degraded = 3,
-        
+
         /// <summary>
         /// Indicates that the health check determined that the component was healthy
         /// </summary>

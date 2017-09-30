@@ -1,11 +1,13 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Microsoft.Extensions.HealthChecks
 {
     /// <summary>
     /// Represents the results of multiple health checks
     /// </summary>
-    public struct CompositeHealthCheckResult
+    public class CompositeHealthCheckResult
     {
         /// <summary>
         /// A <see cref="IReadOnlyDictionary{TKey, T}"/> containing the results from each health check.
@@ -17,12 +19,44 @@ namespace Microsoft.Extensions.HealthChecks
         public IReadOnlyDictionary<string, HealthCheckResult> Results { get; }
 
         /// <summary>
+        /// Gets a <see cref="HealthCheckStatus"/> representing the aggregate status of all the health checks.
+        /// </summary>
+        /// <remarks>
+        /// This value is determined by taking the "worst" result of all the results. So if any result is <see cref="HealthCheckStatus.Failed"/>,
+        /// this value is <see cref="HealthCheckStatus.Failed"/>. If no result is <see cref="HealthCheckStatus.Failed"/> but any result is
+        /// <see cref="HealthCheckStatus.Unhealthy"/>, this value is <see cref="HealthCheckStatus.Unhealthy"/>, etc.
+        /// </remarks>
+        public HealthCheckStatus Status { get; }
+
+        /// <summary>
         /// Create a new <see cref="CompositeHealthCheckResult"/> from the specified results
         /// </summary>
         /// <param name="results">A <see cref="IReadOnlyDictionary{TKey, T}"/> containing the results from each health check.</param>
         public CompositeHealthCheckResult(IReadOnlyDictionary<string, HealthCheckResult> results)
         {
             Results = results;
+            Status = CalculateAggregateStatus(results.Values);
+        }
+
+        private HealthCheckStatus CalculateAggregateStatus(IEnumerable<HealthCheckResult> results)
+        {
+            // This is basically a Min() check, but we know the possible range, so we don't need to walk the whole list
+            var currentValue = HealthCheckStatus.Healthy;
+            foreach(var result in results)
+            {
+                if(currentValue > result.Status)
+                {
+                    currentValue = result.Status;
+                }
+
+                if(currentValue == HealthCheckStatus.Failed)
+                {
+                    // Game over, man! Game over!
+                    return currentValue;
+                }
+            }
+
+            return currentValue;
         }
     }
 }

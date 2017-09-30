@@ -64,8 +64,8 @@ namespace Microsoft.Extensions.HealthChecks.Test
                 actual =>
                 {
                     Assert.Equal(healthyCheck.Name, actual.Key);
-                    Assert.Equal(HealthCheckStatus.Healthy, actual.Value.Status);
                     Assert.Equal(HealthyMessage, actual.Value.Description);
+                    Assert.Equal(HealthCheckStatus.Healthy, actual.Value.Status);
                     Assert.Null(actual.Value.Exception);
                     Assert.Collection(actual.Value.Data, item =>
                     {
@@ -76,16 +76,16 @@ namespace Microsoft.Extensions.HealthChecks.Test
                 actual =>
                 {
                     Assert.Equal(degradedCheck.Name, actual.Key);
-                    Assert.Equal(HealthCheckStatus.Degraded, actual.Value.Status);
                     Assert.Equal(DegradedMessage, actual.Value.Description);
+                    Assert.Equal(HealthCheckStatus.Degraded, actual.Value.Status);
                     Assert.Null(actual.Value.Exception);
                     Assert.Empty(actual.Value.Data);
                 },
                 actual =>
                 {
                     Assert.Equal(unhealthyCheck.Name, actual.Key);
-                    Assert.Equal(HealthCheckStatus.Unhealthy, actual.Value.Status);
                     Assert.Equal(UnhealthyMessage, actual.Value.Description);
+                    Assert.Equal(HealthCheckStatus.Unhealthy, actual.Value.Status);
                     Assert.Same(exception, actual.Value.Exception);
                     Assert.Empty(actual.Value.Data);
                 });
@@ -112,22 +112,22 @@ namespace Microsoft.Extensions.HealthChecks.Test
                 actual =>
                 {
                     Assert.Equal("Throws", actual.Key);
-                    Assert.Equal(HealthCheckStatus.Failed, actual.Value.Status);
                     Assert.Equal(thrownException.Message, actual.Value.Description);
+                    Assert.Equal(HealthCheckStatus.Failed, actual.Value.Status);
                     Assert.Same(thrownException, actual.Value.Exception);
                 },
                 actual =>
                 {
                     Assert.Equal("Faults", actual.Key);
-                    Assert.Equal(HealthCheckStatus.Failed, actual.Value.Status);
                     Assert.Equal(faultedException.Message, actual.Value.Description);
+                    Assert.Equal(HealthCheckStatus.Failed, actual.Value.Status);
                     Assert.Same(faultedException, actual.Value.Exception);
                 },
                 actual =>
                 {
                     Assert.Equal("Succeeds", actual.Key);
-                    Assert.Equal(HealthCheckStatus.Healthy, actual.Value.Status);
                     Assert.Empty(actual.Value.Description);
+                    Assert.Equal(HealthCheckStatus.Healthy, actual.Value.Status);
                     Assert.Null(actual.Value.Exception);
                 });
         }
@@ -160,6 +160,22 @@ namespace Microsoft.Extensions.HealthChecks.Test
                 Assert.Equal("TestScope", actual.Key);
                 Assert.Equal(HealthCheckStatus.Healthy, actual.Value.Status);
             });
+        }
+
+        [Fact]
+        public async Task CheckHealthAsync_ThrowsIfCheckReturnsUnknownStatusResult()
+        {
+            // Arrange
+            var service = new HealthCheckService(new[]
+            {
+                new HealthCheck("Kaboom", ct => Task.FromResult(default(HealthCheckResult))),
+            });
+
+            // Act
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CheckHealthAsync());
+
+            // Assert
+            Assert.Equal("Health check 'Kaboom' returned a result with a status of Unknown", ex.Message);
         }
     }
 }
