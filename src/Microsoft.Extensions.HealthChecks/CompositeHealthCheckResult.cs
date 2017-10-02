@@ -42,14 +42,14 @@ namespace Microsoft.Extensions.HealthChecks
         {
             // This is basically a Min() check, but we know the possible range, so we don't need to walk the whole list
             var currentValue = HealthCheckStatus.Healthy;
-            foreach(var result in results)
+            foreach (var result in results)
             {
-                if(currentValue > result.Status)
+                if (currentValue > result.Status)
                 {
                     currentValue = result.Status;
                 }
 
-                if(currentValue == HealthCheckStatus.Failed)
+                if (currentValue == HealthCheckStatus.Failed)
                 {
                     // Game over, man! Game over!
                     return currentValue;

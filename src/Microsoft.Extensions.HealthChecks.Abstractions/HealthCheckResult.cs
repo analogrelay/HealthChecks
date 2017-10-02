@@ -46,7 +46,7 @@ namespace Microsoft.Extensions.HealthChecks
         /// <param name="data">Additional key-value pairs describing the health of the component</param>
         public HealthCheckResult(HealthCheckStatus status, Exception exception, string description, IReadOnlyDictionary<string, object> data)
         {
-            if(status == HealthCheckStatus.Unknown)
+            if (status == HealthCheckStatus.Unknown)
             {
                 throw new ArgumentException($"'{nameof(HealthCheckStatus.Unknown)}' is not a valid value for the 'status' parameter.", nameof(status));
             }

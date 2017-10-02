@@ -82,7 +82,7 @@ namespace Microsoft.Extensions.HealthChecks
                     }
 
                     // This can only happen if the result is default(HealthCheckResult)
-                    if(result.Status == HealthCheckStatus.Unknown)
+                    if (result.Status == HealthCheckStatus.Unknown)
                     {
                         // This is different from the case above. We throw here because a health check is doing something specifically incorrect.
                         _logger.LogError("Health check '{healthCheckName}' returned a result with a status of Unknown", pair.Key);
