@@ -38,6 +38,22 @@ namespace Microsoft.Extensions.HealthChecks
         /// <param name="logger">A <see cref="ILogger{T}"/> that can be used to log events that occur during health check operations.</param>
         public HealthCheckService(IEnumerable<IHealthCheck> healthChecks, ILogger<HealthCheckService> logger)
         {
+            // Scan the list for duplicate names to provide a better error if there are duplicates.
+            var names = new HashSet<string>();
+            var duplicates = new List<string>();
+            foreach (var check in healthChecks)
+            {
+                if(!names.Add(check.Name))
+                {
+                    duplicates.Add(check.Name);
+                }
+            }
+
+            if(duplicates.Count > 0)
+            {
+                throw new InvalidOperationException($"Duplicate health checks were registered with the name(s): {string.Join(", ", duplicates)}");
+            }
+
             Checks = healthChecks.ToDictionary(c => c.Name);
             _logger = logger;
 
@@ -85,8 +101,9 @@ namespace Microsoft.Extensions.HealthChecks
                     if (result.Status == HealthCheckStatus.Unknown)
                     {
                         // This is different from the case above. We throw here because a health check is doing something specifically incorrect.
-                        _logger.LogError("Health check '{healthCheckName}' returned a result with a status of Unknown", pair.Key);
-                        throw new InvalidOperationException($"Health check '{pair.Key}' returned a result with a status of Unknown");
+                        var exception = new InvalidOperationException($"Health check '{pair.Key}' returned a result with a status of Unknown");
+                        _logger.LogError(exception, "Health check '{healthCheckName}' returned a result with a status of Unknown", pair.Key);
+                        throw exception;
                     }
 
                     results[pair.Key] = result;

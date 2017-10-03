@@ -30,6 +30,25 @@ namespace Microsoft.Extensions.HealthChecks.Test
         }
 
         [Fact]
+        public void Constructor_ThrowsUsefulExceptionForDuplicateNames()
+        {
+            // Arrange
+            var checks = new[] {
+                new HealthCheck("Foo", _ => Task.FromResult(HealthCheckResult.Healthy())),
+                new HealthCheck("Foo", _ => Task.FromResult(HealthCheckResult.Healthy())),
+                new HealthCheck("Bar", _ => Task.FromResult(HealthCheckResult.Healthy())),
+                new HealthCheck("Baz", _ => Task.FromResult(HealthCheckResult.Healthy())),
+                new HealthCheck("Baz", _ => Task.FromResult(HealthCheckResult.Healthy())),
+            };
+
+            // Act
+            var exception = Assert.Throws<InvalidOperationException>(() => new HealthCheckService(checks));
+
+            // Assert
+            Assert.Equal("Duplicate health checks were registered with the name(s): Foo, Baz", exception.Message);
+        }
+
+        [Fact]
         public async Task CheckAsync_RunsAllChecksAndAggregatesResultsAsync()
         {
             const string DataKey = "Foo";
