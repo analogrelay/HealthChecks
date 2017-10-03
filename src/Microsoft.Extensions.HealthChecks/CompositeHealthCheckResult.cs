@@ -52,6 +52,7 @@ namespace Microsoft.Extensions.HealthChecks
                 if (currentValue == HealthCheckStatus.Failed)
                 {
                     // Game over, man! Game over!
+                    // (We hit the worst possible status, so there's no need to keep iterating)
                     return currentValue;
                 }
             }
