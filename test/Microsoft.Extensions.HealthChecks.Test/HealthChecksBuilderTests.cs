@@ -20,7 +20,7 @@ namespace Microsoft.Extensions.HealthChecks.Test
             });
 
             // Act
-            var healthCheckService = services.BuildServiceProvider().GetRequiredService<IHealthCheckService>();
+            var healthCheckService = services.BuildServiceProvider().GetRequiredService<HealthCheckService>();
 
             // Assert
             Assert.Collection(healthCheckService.Checks,

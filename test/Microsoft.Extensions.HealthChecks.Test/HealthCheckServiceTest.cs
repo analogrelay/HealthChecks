@@ -20,7 +20,7 @@ namespace Microsoft.Extensions.HealthChecks.Test
             var checks = new[] { fooCheck, barCheck, bazCheck };
 
             // Act
-            var service = new HealthCheckService(checks);
+            var service = new DefaultHealthCheckService(checks);
 
             // Assert
             Assert.Same(fooCheck, service.Checks["Foo"]);
@@ -33,7 +33,8 @@ namespace Microsoft.Extensions.HealthChecks.Test
         public void Constructor_ThrowsUsefulExceptionForDuplicateNames()
         {
             // Arrange
-            var checks = new[] {
+            var checks = new[]
+            {
                 new HealthCheck("Foo", _ => Task.FromResult(HealthCheckResult.Healthy())),
                 new HealthCheck("Foo", _ => Task.FromResult(HealthCheckResult.Healthy())),
                 new HealthCheck("Bar", _ => Task.FromResult(HealthCheckResult.Healthy())),
@@ -42,7 +43,7 @@ namespace Microsoft.Extensions.HealthChecks.Test
             };
 
             // Act
-            var exception = Assert.Throws<InvalidOperationException>(() => new HealthCheckService(checks));
+            var exception = Assert.Throws<InvalidOperationException>(() => new DefaultHealthCheckService(checks));
 
             // Assert
             Assert.Equal("Duplicate health checks were registered with the name(s): Foo, Baz", exception.Message);
@@ -68,7 +69,7 @@ namespace Microsoft.Extensions.HealthChecks.Test
             var degradedCheck = new HealthCheck("DegradedCheck", _ => Task.FromResult(HealthCheckResult.Degraded(DegradedMessage)));
             var unhealthyCheck = new HealthCheck("UnhealthyCheck", _ => Task.FromResult(HealthCheckResult.Unhealthy(UnhealthyMessage, exception)));
 
-            var service = new HealthCheckService(new[]
+            var service = new DefaultHealthCheckService(new[]
             {
                 healthyCheck,
                 degradedCheck,
@@ -116,7 +117,7 @@ namespace Microsoft.Extensions.HealthChecks.Test
             // Arrange
             var thrownException = new InvalidOperationException("Whoops!");
             var faultedException = new InvalidOperationException("Ohnoes!");
-            var service = new HealthCheckService(new[]
+            var service = new DefaultHealthCheckService(new[]
             {
                 new HealthCheck("Throws", ct => throw thrownException),
                 new HealthCheck("Faults", ct => Task.FromException<HealthCheckResult>(faultedException)),
@@ -161,14 +162,14 @@ namespace Microsoft.Extensions.HealthChecks.Test
                 Assert.Collection(sink.Scopes,
                     actual =>
                     {
-                        Assert.Equal(actual.LoggerName, typeof(HealthCheckService).FullName);
+                        Assert.Equal(actual.LoggerName, typeof(DefaultHealthCheckService).FullName);
                         var scope = Assert.IsType<HealthCheckLogScope>(actual.Scope);
                         Assert.Equal("TestScope", scope.HealthCheckName);
                     });
                 return Task.FromResult(HealthCheckResult.Healthy());
             });
             var loggerFactory = new TestLoggerFactory(sink, enabled: true);
-            var service = new HealthCheckService(new[] { check }, loggerFactory.CreateLogger<HealthCheckService>());
+            var service = new DefaultHealthCheckService(new[] { check }, loggerFactory.CreateLogger<DefaultHealthCheckService>());
 
             // Act
             var results = await service.CheckHealthAsync();
@@ -185,7 +186,7 @@ namespace Microsoft.Extensions.HealthChecks.Test
         public async Task CheckHealthAsync_ThrowsIfCheckReturnsUnknownStatusResult()
         {
             // Arrange
-            var service = new HealthCheckService(new[]
+            var service = new DefaultHealthCheckService(new[]
             {
                 new HealthCheck("Kaboom", ct => Task.FromResult(default(HealthCheckResult))),
             });

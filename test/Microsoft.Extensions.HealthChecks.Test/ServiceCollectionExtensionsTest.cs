@@ -20,8 +20,8 @@ namespace Microsoft.Extensions.HealthChecks.Test
                 actual =>
                 {
                     Assert.Equal(ServiceLifetime.Singleton, actual.Lifetime);
-                    Assert.Equal(typeof(IHealthCheckService), actual.ServiceType);
-                    Assert.Equal(typeof(HealthCheckService), actual.ImplementationType);
+                    Assert.Equal(typeof(HealthCheckService), actual.ServiceType);
+                    Assert.Equal(typeof(DefaultHealthCheckService), actual.ImplementationType);
                     Assert.Null(actual.ImplementationInstance);
                     Assert.Null(actual.ImplementationFactory);
                 });
